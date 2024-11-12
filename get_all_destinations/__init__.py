@@ -47,7 +47,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError as ve:
         logging.error(f"ValueError encountered: {str(ve)}")
         return func.HttpResponse(
-            "Invalid JSON format or data in blob.",
+            "Invalid JSON format or data in blob. THus blob",
             status_code=400,
             headers={
                 "Access-Control-Allow-Origin": "*",
