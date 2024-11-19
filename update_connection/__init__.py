@@ -34,7 +34,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 }
             )
 
-        # Actualizar la conexión
+        # Actualizar la conexión que va a subir
         connections[connection_name] = updated_data
 
         # Guardar las conexiones actualizadas en el blob

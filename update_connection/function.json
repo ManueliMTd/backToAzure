@@ -5,7 +5,7 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "route": "connectionstt/{connection_name}",
+      "route": "connections/{connection_name}",
       "methods": ["put"]
     },
     {
