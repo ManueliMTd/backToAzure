@@ -19,7 +19,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         connection_data = req.get_json()
 
         # Validar que se haya enviado un nombre de conexión
-        if "name" not in connection_data:
+        if "connection_name" not in connection_data:
             return func.HttpResponse(
                 "Missing 'name' in request body",
                 status_code=400,
@@ -34,7 +34,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         connections = load_connections()
 
         # Verificar si la conexión ya existe
-        if connection_data["name"] in connections:
+        if connection_data["connection_name"] in connections:
             return func.HttpResponse(
                 "Connection already exists",
                 status_code=400,
@@ -46,7 +46,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         # Agregar la nueva conexión
-        connections[connection_data["name"]] = connection_data
+        connections[connection_data["connection_name"]] = connection_data
 
         # Guardar las conexiones actualizadas en el blob
         save_json_to_blob("connections", "connections.json", connections)

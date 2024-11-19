@@ -5,13 +5,13 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "route": "contentserver/receive",
+      "route": "contentserver/receive/{*path}",
       "methods": ["get", "post"]
     },
     {
-      "type": "http",
-      "direction": "out",
-      "name": "res"
+        "name": "$return",
+        "type": "http",
+        "direction": "out"
     }
   ]
 }

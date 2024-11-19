@@ -9,9 +9,9 @@
       "methods": ["post"]
     },
     {
+      "name": "$return",
       "type": "http",
-      "direction": "out",
-      "name": "res"
+      "direction": "out"
     }
   ]
 }

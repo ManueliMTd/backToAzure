@@ -13,7 +13,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "Access-Control-Allow-Headers": "Content-Type, Authorization"
             }
         )
-
+    print("elpepe")
     try:
         # Cargar conexiones desde el blob
         connections = load_connections()

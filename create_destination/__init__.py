@@ -1,6 +1,6 @@
 import azure.functions as func
 import json
-from blob_utils import load_destinations, save_json_to_blob  # Importar funciones auxiliares
+from blob_utils import load_destinations, save_json_to_blob
 import logging
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -20,7 +20,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         destination_data = req.get_json()
 
         # Validar que se hayan enviado los campos necesarios
-        if "contRep" not in destination_data or "connection_name" not in destination_data:
+        contRep = destination_data.get("contRep")
+        connection_name = destination_data.get("connection_name")
+        
+        if not contRep or not connection_name:
             return func.HttpResponse(
                 "Missing 'contRep' or 'connection_name' in request body",
                 status_code=400,
@@ -35,7 +38,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         destinations = load_destinations()
 
         # Verificar si el destino ya existe
-        if destination_data["contRep"] in destinations:
+        if contRep in destinations:
             return func.HttpResponse(
                 "Destination already exists",
                 status_code=400,
@@ -47,7 +50,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         # Agregar el nuevo destino
-        destinations[destination_data["contRep"]] = destination_data
+        destinations[contRep] = connection_name
 
         # Guardar los destinos actualizados en el blob
         save_json_to_blob("connections", "destinations.json", destinations)

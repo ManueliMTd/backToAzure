@@ -1,3 +1,4 @@
+import io
 import os
 import sys
 import logging
@@ -9,10 +10,12 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 from http.client import HTTPException
+import azure.functions as func
+
 
 # Añadir el directorio padre a sys.path para importar módulos externos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-from blob_utils import load_destinations
+from blob_utils import *
 
 logger = logging.getLogger("azure")
 
@@ -51,19 +54,39 @@ def decrypt_data(encrypted_data: bytes, key: bytes) -> bytes:
 
 
 def get_destination(contRep: str) -> dict:
-    # Cargar configuraciones y obtener el destino específico
+    # Load existing destinations
     destinations = load_destinations()
+
+    # Check if destination exists
     if contRep in destinations:
         return destinations[contRep]
     else:
-        raise ValueError(f"Destino '{contRep}' no encontrado.")
+        # Create new destination if it doesn't exist
+        destinations[contRep] = {"connection_name": "defaultDestination"}
+
+        # Save the updated destinations to blob
+        save_json_to_blob("connections", "destinations.json", destinations)
+
+        return destinations[contRep]
 
 
 # Punto de entrada principal de la función de Azure
 def main(req: HttpRequest) -> HttpResponse:
-    method = req.method
-    command = req.params.get("command", "get" if method == "GET" else "create")
+    # Log completo de la URL y los parámetros
+    logging.info("Received request URL: %s", req.url)
+    logging.info("Received request parameters: %s", req.params)
 
+    method = req.method
+
+    # Extrae el "command" directamente de la URL entre el '?' y el primer '&'
+    query_start = req.url.find("?")
+    command = req.url[query_start + 1 :].split("&")[0] if query_start != -1 else None
+
+    # Si no hay un command, devuelve un error
+    if not command:
+        return HttpResponse("Command not found in URL query", status_code=400)
+
+    # Procesa según el método HTTP
     if method == "GET":
         return handle_get(req, command)
     elif method == "POST":
@@ -78,14 +101,19 @@ def handle_get(req: HttpRequest, command: str) -> HttpResponse:
     contRep = req.params.get("contRep")
     docId = req.params.get("docId")
 
+    print("command = > ", command)
     if command == "serverInfo":
+        print("to fresa")
+        print(handle_server_info(pVersion, contRep))
         return handle_server_info(pVersion, contRep)
-
+    print("ta roto")
     if not contRep or not docId:
         return HttpResponse("Faltan parámetros requeridos para 'get'", status_code=400)
 
     try:
-        connection_info = get_destination(contRep)
+        connection_name = get_destination(contRep)
+        connections = load_connections()
+        connection_info = connections[connection_name]
         cloud_type = connection_info["cloud"]
         connection_data = connection_info["data"]
 
@@ -118,26 +146,40 @@ def handle_get(req: HttpRequest, command: str) -> HttpResponse:
                 download_stream = blob_client.download_blob()
                 encrypted_content = download_stream.readall()
 
+                print(
+                    f"Tamaño total del archivo cifrado descargado: {len(encrypted_content)} bytes"
+                )
+
+                # Desencriptar el contenido
                 try:
                     decrypted_content = decrypt_data(encrypted_content, encryption_key)
+                    print(
+                        f"Tamaño total del archivo desencriptado: {len(decrypted_content)} bytes"
+                    )
                 except Exception as e:
-                    logger.error(f"Error al descifrar el documento {docId}: {e}")
-                    return HttpResponse(
-                        f"Error al descifrar el documento: {str(e)}", status_code=500
+                    logger.error(f"Error al desencriptar el documento {docId}: {e}")
+                    return func.HttpResponse(
+                        f"Error al desencriptar el documento: {str(e)}", status_code=500
                     )
 
-                temp_file_path = f"/tmp/{docId}.pdf"
-                with open(temp_file_path, "wb") as temp_file:
-                    temp_file.write(decrypted_content)
-
-                response = func.FileResponse(
-                    temp_file_path, media_type="application/pdf"
+                # Configurar la respuesta con el contenido desencriptado
+                response = func.HttpResponse(
+                    body=decrypted_content,  # Utiliza el contenido desencriptado
+                    status_code=200,
+                    headers={
+                        "Content-Type": "application/pdf",
+                        "Content-Disposition": f'attachment; filename="{docId}.pdf"',
+                        "Content-Length": str(
+                            len(decrypted_content)
+                        ),  # Asegura el tamaño del contenido
+                    },
                 )
-                response.call_on_close(lambda: os.remove(temp_file_path))
+
                 return response
+
             else:
                 logger.error(f"Documento {docId} no encontrado en Azure Blob Storage.")
-                return HttpResponse(
+                return func.HttpResponse(
                     f"Documento con docId '{docId}' no encontrado en Azure Blob Storage.",
                     status_code=404,
                 )
@@ -151,6 +193,8 @@ def handle_get(req: HttpRequest, command: str) -> HttpResponse:
     # Manejo del comando 'info'
     elif command == "info":
         found_blob = None
+
+        print("tamo aqui, ")
         try:
             blobs_list = container_client.list_blobs(name_starts_with=f"{contRep}/")
             for blob in blobs_list:
@@ -162,18 +206,21 @@ def handle_get(req: HttpRequest, command: str) -> HttpResponse:
                 blob_client = container_client.get_blob_client(found_blob)
                 props = blob_client.get_blob_properties()
 
-                return HttpResponse(
-                    content={
-                        "message": "Información del documento recuperada",
-                        "command": command,
-                        "contRep": contRep,
-                        "docId": docId,
-                        "status": "active",
-                        "file_size": f"{props.size / 1024} KB",
-                        "last_modified": props.last_modified,
-                    },
+                return func.HttpResponse(
+                    body=json.dumps(
+                        {
+                            "message": "Información del documento recuperada",
+                            "command": command,
+                            "contRep": contRep,
+                            "docId": docId,
+                            "status": "active",
+                            "file_size": f"{props.size / 1024} KB",
+                            "last_modified": props.last_modified.isoformat(),  # Convertir a cadena ISO 8601
+                        }
+                    ),
                     status_code=200,
                 )
+
             else:
                 return HttpResponse(
                     f"Documento con docId '{docId}' no encontrado en Azure Blob Storage.",
@@ -192,7 +239,11 @@ def handle_get(req: HttpRequest, command: str) -> HttpResponse:
 
 
 # Manejo del comando 'serverInfo'
+from azure.functions import HttpResponse
+
+
 def handle_server_info(pVersion, contRep):
+    print("server info tamo aqui", pVersion, contRep)
     server_info = (
         f'serverStatus="running";'
         f'serverVendorId="Auritas-ContentServer-4.5";'
@@ -214,7 +265,8 @@ def handle_server_info(pVersion, contRep):
     else:
         response = server_info
 
-    return HttpResponse(content=response, mimetype="text/plain", status_code=200)
+    # Cambia a `mimetype` en lugar de `content_type` para HttpResponse
+    return HttpResponse(body=response, mimetype="text/plain", status_code=200)
 
 
 # Procesamiento del método POST
@@ -229,7 +281,12 @@ def handle_post(req: HttpRequest, command: str) -> HttpResponse:
         )
 
     try:
-        connection_info = get_destination(contRep)
+        connection_name = get_destination(contRep)
+        connections = load_connections()
+        connection_info = connections[connection_name]
+        print(
+            "eeeeeeeeeeeeeeeeeeeeeeeee", connection_name, connection_info, connections
+        )
         cloud_type = connection_info["cloud"]
         connection_data = connection_info["data"]
     except ValueError as e:
@@ -286,17 +343,19 @@ def handle_post(req: HttpRequest, command: str) -> HttpResponse:
                         f"Error al subir archivo: {str(e)}", status_code=500
                     )
 
-    return HttpResponse(
-        content={
-            "message": "Archivos subidos exitosamente.",
-            "status": 201,
-            "details": {
-                "command": command,
-                "contRep": contRep,
-                "docId": docId,
-                "files": file_info,
-            },
-        },
+    return func.HttpResponse(
+        body=json.dumps(
+            {
+                "message": "Archivos subidos exitosamente.",
+                "status": 201,
+                "details": {
+                    "command": command,
+                    "contRep": contRep,
+                    "docId": docId,
+                    "files": file_info,
+                },
+            }
+        ),
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
