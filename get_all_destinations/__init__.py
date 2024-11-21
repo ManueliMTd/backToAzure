@@ -1,47 +1,49 @@
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient
 import os
-import json
 import logging
-
+import json
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Received request to test Blob Storage connection.")
-
-    # Obtener la variable de entorno
-    connection_string = os.getenv("AzureWebJobsStorage")
-    if not connection_string:
-        return func.HttpResponse(
-            json.dumps({"message": "AzureWebJobsStorage is not configured."}),
-            status_code=200,
-            mimetype="application/json",
-        )
+    logging.info("Inicio de ejecución de 'get_all_destinations'.")
 
     try:
-        # Inicializa el cliente de Blob Storage
-        blob_service_client = BlobServiceClient.from_connection_string(
-            connection_string
-        )
-        logging.info("BlobServiceClient initialized successfully.")
+        # Obtener la variable de entorno AzureWebJobsStorage
+        connection_string = os.getenv("AzureWebJobsStorage")
+        if not connection_string:
+            logging.warning("AzureWebJobsStorage no configurada o no accesible.")
+            return func.HttpResponse(
+                json.dumps({"message": "AzureWebJobsStorage no configurada o no accesible."}),
+                status_code=200,
+                mimetype="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                },
+            )
 
-        # Lista los contenedores
-        containers = blob_service_client.list_containers()
-        container_names = [container.name for container in containers]
+        # Mostrar el connection string completo (solo para depuración)
+        logging.info(f"Connection string completo: {connection_string}")
 
         return func.HttpResponse(
-            json.dumps(
-                {
-                    "message": "Blob Storage is accessible.",
-                    "containers": container_names,
-                }
-            ),
+            json.dumps({"message": "AzureWebJobsStorage configurada correctamente.", "connection_string": connection_string}),
             status_code=200,
             mimetype="application/json",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
         )
     except Exception as e:
-        logging.error(f"Error accessing Blob Storage: {e}")
+        logging.error(f"Error en 'get_all_destinations': {str(e)}", exc_info=True)
         return func.HttpResponse(
-            json.dumps({"message": "Error accessing Blob Storage.", "error": str(e)}),
+            json.dumps({"message": "Error interno.", "error": str(e)}),
             status_code=500,
             mimetype="application/json",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            },
         )
