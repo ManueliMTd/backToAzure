@@ -2,11 +2,14 @@ import azure.functions as func
 import os
 import logging
 import json
-from azure.storage.blob import BlobServiceClient
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Inicio de ejecución de 'get_all_destinations'.")
+    try:
+        from azure.storage.blob import BlobServiceClient
+    except Exception as e:
+        logging.error(f"Error en 'get_all_destinations': {str(e)}", exc_info=True)
 
     try:
         # Obtener la variable de entorno AzureWebJobsStorage
