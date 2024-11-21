@@ -72,15 +72,8 @@ jobs:
 
       - name: Enable Remote Build
         run: |
-          az functionapp config appsettings set \
-            --name StoringFunctions \
-            --resource-group StoringPersonal \
-            --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+          az functionapp create --resource-group StoringPersonal --consumption-plan-location centralus --runtime python --runtime-version 3.9 --functions-version 4 --name StoringFunctions --storage-account storingpersonal --os-type Linux
 
       - name: "Deploy to Azure Functions"
-        uses: Azure/functions-action@v1
-        id: deploy-to-function
-        with:
-          app-name: "StoringFunctions"
-          slot-name: "Production"
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        run: |
+          func azure functionapp publish StoringFunctions --build remote
