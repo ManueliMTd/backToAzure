@@ -78,45 +78,15 @@ def save_json_to_blob(container_name: str, blob_name: str, data: dict) -> None:
 
 
 def load_connections() -> dict:
-
-    return {
-        "defaultDestination": {
-            "connection_name": "defaultDestination",
-            "cloud": "AZURE",
-            "data": {
-                "connection_string": "elpepe",
-                "container_name": "testingconnextion",
-            },
-        },
-        "connectionOne": {
-            "cloud": "AZURE",
-            "data": {
-                "connection_string": "elpepe",
-                "container_name": "testingconnextion",
-            },
-        },
-        "connectionTwo": {
-            "cloud": "AWS",
-            "data": {
-                "access_key": "your-access-key",
-                "secret_key": "your-secret-key",
-                "bucket_name": "example-bucket",
-            },
-        },
-        "connectionThree": {
-            "cloud": "SHAREPOINT",
-            "data": {
-                "tenant_id": "your-tenant-id",
-                "client_id": "your-client-id",
-                "client_secret": "your-client-secret",
-                "site_url": "https://your-organization.sharepoint.com",
-            },
-        },
-    }
+    """Cargar el archivo 'connections.json' desde el contenedor de Azure Blob Storage."""
+    logging.info("Cargando 'connections.json' desde el contenedor 'connections'...")
+    return load_json_from_blob("connections", "connections.json")
 
 
 def load_destinations() -> dict:
-    return {"defaultDestination": "connectionTwo"}
+    """Cargar el archivo 'destinations.json' desde el contenedor de Azure Blob Storage."""
+    logging.info("Cargando 'destinations.json' desde el contenedor 'connections'...")
+    return load_json_from_blob("connections", "destinations.json")
 
 
 def generate_secKey(message: str) -> str:
@@ -162,5 +132,5 @@ def decrypt_data(encrypted_data: bytes, key: bytes) -> bytes:
     unpadder = padding.PKCS7(128).unpadder()
     decrypted_data = unpadder.update(decrypted_padded_data) + unpadder.finalize()
 
-    logging.info("Datos des cifrados correctamente.")
+    logging.info("Datos descifrados correctamente.")
     return decrypted_data
