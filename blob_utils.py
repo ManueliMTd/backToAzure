@@ -132,5 +132,5 @@ def decrypt_data(encrypted_data: bytes, key: bytes) -> bytes:
     unpadder = padding.PKCS7(128).unpadder()
     decrypted_data = unpadder.update(decrypted_padded_data) + unpadder.finalize()
 
-    logging.info("Datos descifrados correctamente.")
+    logging.info("Datos des cifrados correctamente.")
     return decrypted_data
