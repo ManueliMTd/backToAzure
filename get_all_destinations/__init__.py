@@ -1,40 +1,42 @@
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient
 import os
 import logging
 import json
+from azure.storage.blob import BlobServiceClient
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Received request to list containers in Azure Blob Storage.")
-
-    # Obtener el connection string desde las variables de entorno
-    connection_string = os.getenv("AzureWebJobsStorage")
-    if not connection_string:
-        logging.error("AzureWebJobsStorage is not configured.")
-        return func.HttpResponse(
-            json.dumps({"message": "AzureWebJobsStorage is not configured."}),
-            status_code=200,
-            mimetype="application/json",
-        )
+    logging.info("Inicio de ejecución de 'get_all_destinations'.")
 
     try:
-        # Inicializar el cliente de Blob Service
+        # Obtener la variable de entorno AzureWebJobsStorage
+        connection_string = os.getenv("AzureWebJobsStorage")
+        if not connection_string:
+            logging.warning("AzureWebJobsStorage no configurada o no accesible.")
+            return func.HttpResponse(
+                json.dumps(
+                    {"message": "AzureWebJobsStorage no configurada o no accesible."}
+                ),
+                status_code=200,
+                mimetype="application/json",
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                },
+            )
+
+        # Mostrar el connection string completo (solo para depuración)
+        logging.info(f"Connection string completo: {connection_string}")
         blob_service_client = BlobServiceClient.from_connection_string(
             connection_string
         )
-        logging.info("BlobServiceClient initialized successfully.")
-
-        # Listar todos los contenedores
-        containers = blob_service_client.list_containers()
-        container_names = [container.name for container in containers]
-        logging.info(f"Containers found: {container_names}")
 
         return func.HttpResponse(
             json.dumps(
                 {
-                    "message": "Containers retrieved successfully.",
-                    "containers": container_names,
+                    "message": "AzureWebJobsStorage configurada correctamente.",
+                    "connection_string": connection_string,
                 }
             ),
             status_code=200,
@@ -46,9 +48,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             },
         )
     except Exception as e:
-        logging.error(f"Error listing containers: {e}")
+        logging.error(f"Error en 'get_all_destinations': {str(e)}", exc_info=True)
         return func.HttpResponse(
-            json.dumps({"message": "Error listing containers.", "error": str(e)}),
+            json.dumps({"message": "Error interno.", "error": str(e)}),
             status_code=500,
             mimetype="application/json",
             headers={
