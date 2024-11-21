@@ -78,15 +78,45 @@ def save_json_to_blob(container_name: str, blob_name: str, data: dict) -> None:
 
 
 def load_connections() -> dict:
-    """Cargar el archivo 'connections.json' desde el contenedor de Azure Blob Storage."""
-    logging.info("Cargando 'connections.json' desde el contenedor 'connections'...")
-    return load_json_from_blob("connections", "connections.json")
+
+    return {
+        "defaultDestination": {
+            "connection_name": "defaultDestination",
+            "cloud": "AZURE",
+            "data": {
+                "connection_string": "elpepe",
+                "container_name": "testingconnextion",
+            },
+        },
+        "connectionOne": {
+            "cloud": "AZURE",
+            "data": {
+                "connection_string": "elpepe",
+                "container_name": "testingconnextion",
+            },
+        },
+        "connectionTwo": {
+            "cloud": "AWS",
+            "data": {
+                "access_key": "your-access-key",
+                "secret_key": "your-secret-key",
+                "bucket_name": "example-bucket",
+            },
+        },
+        "connectionThree": {
+            "cloud": "SHAREPOINT",
+            "data": {
+                "tenant_id": "your-tenant-id",
+                "client_id": "your-client-id",
+                "client_secret": "your-client-secret",
+                "site_url": "https://your-organization.sharepoint.com",
+            },
+        },
+    }
 
 
 def load_destinations() -> dict:
-    """Cargar el archivo 'destinations.json' desde el contenedor de Azure Blob Storage."""
-    logging.info("Cargando 'destinations.json' desde el contenedor 'connections'...")
-    return load_json_from_blob("connections", "destinations.json")
+    return {"defaultDestination": "connectionTwo"}
 
 
 def generate_secKey(message: str) -> str:
