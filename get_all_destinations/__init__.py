@@ -28,9 +28,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         # Mostrar el connection string completo (solo para depuración)
         logging.info(f"Connection string completo: {connection_string}")
-        blob_service_client = BlobServiceClient.from_connection_string(
-            connection_string
-        )
+        # blob_service_client = BlobServiceClient.from_connection_string(
+        #     connection_string
+        # )
 
         return func.HttpResponse(
             json.dumps(
