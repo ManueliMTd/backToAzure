@@ -2,7 +2,7 @@ import azure.functions as func
 import os
 import logging
 import json
-# from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
