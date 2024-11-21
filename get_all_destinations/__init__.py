@@ -1,45 +1,47 @@
 import azure.functions as func
+from azure.storage.blob import BlobServiceClient
 import os
-import logging
 import json
+import logging
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info("Received request to test AzureWebJobsStorage connection string.")
+    logging.info("Received request to test Blob Storage connection.")
 
     # Obtener la variable de entorno
     connection_string = os.getenv("AzureWebJobsStorage")
-
     if not connection_string:
-        logging.warning("AzureWebJobsStorage is not configured or accessible.")
         return func.HttpResponse(
-            json.dumps(
-                {"message": "AzureWebJobsStorage is not configured or accessible."}
-            ),
-            status_code=200,  # Retorna 200 para indicar "no hay" en lugar de un error
+            json.dumps({"message": "AzureWebJobsStorage is not configured."}),
+            status_code=200,
             mimetype="application/json",
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            },
         )
 
-    # Devuelve parte del connection string por seguridad
-    logging.info("AzureWebJobsStorage connection string retrieved successfully.")
-    response = {
-        "message": "AzureWebJobsStorage is configured.",
-        "connection_string_preview": connection_string[:50]
-        + "...",  # Solo una parte visible
-    }
+    try:
+        # Inicializa el cliente de Blob Storage
+        blob_service_client = BlobServiceClient.from_connection_string(
+            connection_string
+        )
+        logging.info("BlobServiceClient initialized successfully.")
 
-    return func.HttpResponse(
-        json.dumps(response),
-        status_code=200,
-        mimetype="application/json",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
-    )
+        # Lista los contenedores
+        containers = blob_service_client.list_containers()
+        container_names = [container.name for container in containers]
+
+        return func.HttpResponse(
+            json.dumps(
+                {
+                    "message": "Blob Storage is accessible.",
+                    "containers": container_names,
+                }
+            ),
+            status_code=200,
+            mimetype="application/json",
+        )
+    except Exception as e:
+        logging.error(f"Error accessing Blob Storage: {e}")
+        return func.HttpResponse(
+            json.dumps({"message": "Error accessing Blob Storage.", "error": str(e)}),
+            status_code=500,
+            mimetype="application/json",
+        )
