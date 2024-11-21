@@ -9,18 +9,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Received request to get all destinations.")
 
     # Verifica la conexión a Azure Blob Storage
-    connection_string = os.getenv("AzureWebJobsStorage")
-    if not connection_string:
-        logging.error("AzureWebJobsStorage is not set in the environment variables.")
-        return func.HttpResponse(
-            "AzureWebJobsStorage is not configured.",
-            status_code=500,
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            },
-        )
+    # connection_string = os.getenv("AzureWebJobsStorage")
+    # if not connection_string:
+    #     logging.error("AzureWebJobsStorage is not set in the environment variables.")
+    #     return func.HttpResponse(
+    #         "AzureWebJobsStorage is not configured.",
+    #         status_code=500,
+    #         headers={
+    #             "Access-Control-Allow-Origin": "*",
+    #             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    #             "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    #         },
+    #     )
 
     # Log para confirmar que se lee la cadena de conexión
     logging.info(f"AzureWebJobsStorage connection string: {connection_string[:50]}...")
