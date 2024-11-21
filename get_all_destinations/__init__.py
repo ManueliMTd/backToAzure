@@ -17,19 +17,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             headers={
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization",
             },
         )
 
     # Log para confirmar que se lee la cadena de conexión
-    logging.info(
-        f"AzureWebJobsStorage connection string: {connection_string[:50]}..."
-    )  # Muestra solo los primeros 50 caracteres
+    logging.info(f"AzureWebJobsStorage connection string: {connection_string[:50]}...")
 
     # Manejo de solicitudes OPTIONS para CORS
     if req.method == "OPTIONS":
-        logging.info("Received OPTIONS request for CORS preflight.")
+        logging.info("Handling OPTIONS request for CORS preflight.")
         return func.HttpResponse(
             status_code=200,
             headers={
@@ -46,9 +44,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         destinations = load_destinations()
 
         if destinations:
-            logging.info(
-                f"Loaded destinations successfully: {len(destinations)} items found."
-            )
+            logging.info(f"Loaded {len(destinations)} destinations successfully.")
         else:
             logging.warning("No destinations found in the blob storage.")
 
@@ -67,22 +63,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             },
         )
 
-    except ValueError as ve:
-        logging.error(f"ValueError encountered: {str(ve)}", exc_info=True)
+    except FileNotFoundError as fnfe:
+        logging.error(f"File not found: {fnfe}", exc_info=True)
         return func.HttpResponse(
-            "Invalid JSON format or data in blob storage.",
-            status_code=400,
+            "File not found in blob storage.",
+            status_code=404,
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization",
             },
         )
-
     except Exception as e:
-        logging.error(
-            f"Unexpected error while loading destinations: {str(e)}", exc_info=True
-        )
+        logging.error(f"Unexpected error while loading destinations: {str(e)}", exc_info=True)
         return func.HttpResponse(
             f"Error loading destinations: {str(e)}",
             status_code=500,
